@@ -1,0 +1,18 @@
+{
+  "name": "tp3-owasp-audit",
+  "version": "1.0.0",
+  "main": "server_secure.js",
+  "scripts": {
+    "start": "node server_secure.js",
+    "start:vulnerable": "node server_vulnerable.js",
+    "start:mock": "node mock_internal_service.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.23.8"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
