@@ -7,7 +7,6 @@ const { z } = require('zod')
 const app = express();
 app.use(express.json({ limit: '16kb' }));
 
-const SECRET = 'faible';
 const documents = [
   { id: 1, userId: '1', title: 'Fiche de paie Alice', amount: 4500 },
   { id: 2, userId: '2', title: 'Contrat confidentiel Bob', amount: 120000 }
@@ -49,9 +48,19 @@ const profileSchema = z.object({
     displayName: z.string().trim().min(2).max(80)
 }).strict();
 
-// const partnerSchema = z.object({
-//     partnerId: z.enum([''])
-// })
+const partnerSchema = z.object({
+    partnerId: z.enum(['payroll'])
+})
+
+// Middleware de validation du schema zod
+function validate(schema){
+  return (req, res, next) => {
+    const result = schema.safeParse(req.body);
+    if(!result.success) return res.status(422).json({error: 'Données invalides'});
+    req.body = result.data;
+    next();
+  };
+}
 
 
 // API1 : le serveur ne vérifie pas que le document appartient à l'utilisateur.
@@ -67,21 +76,20 @@ app.get('/api/v1/documents/:id', authenticate, (req, res) => {
 });
 
 // API3 : tous les champs reçus sont copiés dans le profil.
-app.patch('/api/v1/profile', authenticate, (req, res) => {
+app.patch('/api/v1/profile', authenticate, validate(profileSchema), (req, res) => {
   const profile = profiles.get(String(req.user.sub));
   if (!profile) return res.status(404).json({ error: 'Profil introuvable' });
-  Object.assign(profile, req.body);
-  res.json(profile);
+  
+  profile.displayName = req.body.displayName;
+  res.json({
+    id: profile.id,
+    displayName: profile.displayName
+  });
 });
 
 // API7 : l'adresse fournie par le client est appelée sans contrôle.
-app.post('/api/v1/partner-preview', authenticate, async (req, res) => {
-  try {
-    const response = await fetch(req.body.url);
-    res.json({ status: response.status, body: await response.text() });
-  } catch {
-    res.status(502).json({ error: 'La requête partenaire a échoué' });
-  }
+app.post('/api/v1/partner-preview', authenticate, validate(partnerSchema), async (req, res) => {
+  res.json({ partner: req.body.partnerId, status: 'preview disponible'})
 });
 
 const PORT = 3002;
